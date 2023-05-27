@@ -15,14 +15,14 @@ public:
         const unsigned int treeHeight = (unsigned int)ceil(log2(arr.size()));
         const unsigned long long treeLen = ((unsigned long long)pow(2U, treeHeight)) * 2U - 1U;
         tree = new vector<T>(treeLen);
-        constructUtil(0U, dataLen - 1U, 0U, arr);
+        ConstructUtil(0U, dataLen - 1U, 0U, arr);
     }
 
     SegmentTree(const SegmentTree& anotherTree) = delete;
-    SegmentTree(SegmentTree&& anotherTree) {
-        dataLen = anotherTree.dataLen;
+    SegmentTree(SegmentTree&& anotherTree) : dataLen(anotherTree.dataLen){
         tree = anotherTree.tree;
         anotherTree.tree = NULL;
+        anotherTree.dataLen = 0U;
     }
 
     SegmentTree& operator =(const SegmentTree& anotherTree) = delete;
@@ -47,59 +47,61 @@ public:
         if(arr.size() < dataLen) {
             dataLen = arr.size();
         }
-        constructUtil(0U, dataLen - 1U, 0U, arr);
+        ConstructUtil(0U, dataLen - 1U, 0U, arr);
         return true;
     }
 
-    void Update(unsigned int start, unsigned int end, const T& val) {
-        UpdateUtil(start, end, 0U, dataLen - 1U, 0U, val);
+    void Update(const unsigned int index, const T& val) {
+        if(index < dataLen) UpdateUtil(index, 0U, dataLen - 1U, 0U, val);
     }
 
-    T& GetRange(unsigned int start, unsigned int end) {
-        return move(GetRangeUtil(start, end, 0U, dataLen - 1U, 0U));
+    T GetRange(const unsigned int start, const unsigned int end) const {
+        return GetRangeUtil(start, ((end < dataLen) ? end : (dataLen - 1U)), 0U, dataLen - 1U, 0U);
+    }
+
+    unsigned int size() const {
+        return dataLen;
     }
 
 private:
-    unsigned int dataLen;
+    const unsigned int dataLen;
     vector<T> *tree;
 
-    void constructUtil(unsigned int start, unsigned int end, unsigned long long segNode, vector<T> &arr) {
+    void ConstructUtil(const unsigned int start, const unsigned int end, const unsigned long long segNode, const vector<T> &arr) {
         if(start == end) {
             (*tree)[segNode] = arr[start];
             return;
         }
         unsigned int mid = start + (end - start) / 2U;
-        constructUtil(start, mid, segNode * 2U + 1U, arr);
-        constructUtil(mid + 1U, end, segNode * 2U + 2U, arr);
+        ConstructUtil(start, mid, segNode * 2U + 1U, arr);
+        ConstructUtil(mid + 1U, end, segNode * 2U + 2U, arr);
         (*tree)[segNode] = (*tree)[segNode * 2U + 1U] + (*tree)[segNode * 2U + 2U];
     }
 
-    void UpdateUtil(unsigned int start, unsigned int end, unsigned long long rangeStart, unsigned long long rangeEnd, unsigned long long segNode, const T& val) {
-        if((end < rangeStart) || (rangeEnd < start)) {
+    void UpdateUtil(const unsigned int index, const unsigned long long rangeStart, const unsigned long long rangeEnd, const unsigned long long segNode, const T& val) {
+        if((index < rangeStart) || (rangeEnd < index)) {
             return;
         }
-        if(start <= rangeStart && rangeEnd <= end) {
-            (*tree)[segNode] = val * (rangeEnd - rangeStart);
+        if(rangeStart == rangeEnd) {
+            (*tree)[segNode] = val;
             return;
         }
         unsigned int rangeMid = rangeStart + (rangeEnd - rangeStart) / 2U;
-        UpdateUtil(start, end, rangeStart, rangeMid, segNode * 2U + 1U, val);
-        UpdateUtil(start, end, rangeMid + 1U, rangeEnd, segNode * 2U + 2U, val);
+        UpdateUtil(index, rangeStart, rangeMid, segNode * 2U + 1U, val);
+        UpdateUtil(index, rangeMid + 1U, rangeEnd, segNode * 2U + 2U, val);
         (*tree)[segNode] = (*tree)[segNode * 2U + 1U] + (*tree)[segNode * 2U + 2U];
     }
 
-    T& GetRangeUtil(unsigned int start, unsigned int end, unsigned long long rangeStart, unsigned long long rangeEnd, unsigned long long segNode) {
-        T ret = T();
+    T GetRangeUtil(const unsigned int start, const unsigned int end, const unsigned long long rangeStart, const unsigned long long rangeEnd, const unsigned long long segNode) const {
         if(end < rangeStart || rangeEnd < start) {
-            return move(ret);
+            return T();
         }
         if(start <= rangeStart && rangeEnd <= end) {
+            T ret;
             ret = (*tree)[segNode];
-            return move(ret);
+            return ret;
         }
         unsigned int rangeMid = rangeStart + (rangeEnd - rangeStart) / 2U;
-        ret += GetRangeUtil(start, end, rangeStart, rangeMid, segNode * 2U + 1U);
-        ret += GetRangeUtil(start, end, rangeMid + 1U, rangeEnd, segNode * 2U + 2U);
-        return move(ret);
+        return T(GetRangeUtil(start, end, rangeStart, rangeMid, segNode * 2U + 1U) + GetRangeUtil(start, end, rangeMid + 1U, rangeEnd, segNode * 2U + 2U));
     }
 };
